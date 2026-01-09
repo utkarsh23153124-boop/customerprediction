@@ -1,0 +1,96 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+df = pd.read_csv("customer.dataset.csv")
+df.head(5)
+df.shape
+df.info()
+threshold = df['purchase_amount'].median()
+df['Purchase'] = (df['purchase_amount'] > threshold).astype(int)
+df.isnull().sum()
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import train_test_split
+
+X = df.drop('Purchase', axis=1)
+y = df['Purchase']
+
+cat_cols = X.select_dtypes(include='object').columns
+num_cols = X.select_dtypes(include=['int64','float64']).columns
+
+preprocessor = ColumnTransformer([
+    ('num', StandardScaler(), num_cols),
+    ('cat', OneHotEncoder(handle_unknown='ignore'), cat_cols)
+])
+
+num_df = df.select_dtypes(include=['int64', 'float64'])
+
+# Compute correlation matrix
+corr_matrix = num_df.corr()
+
+# Plot heatmap
+plt.figure(figsize=(8,6))
+plt.imshow(corr_matrix)
+plt.colorbar()
+
+plt.xticks(range(len(num_df.columns)), num_df.columns, rotation=90)
+plt.yticks(range(len(num_df.columns)), num_df.columns)
+
+plt.title("Correlation Heatmap of Customer Dataset")
+plt.show()
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+import matplotlib.pyplot as plt
+
+# Age Distribution
+plt.figure()
+df['age'].hist()
+plt.title("Age Distribution")
+plt.show()
+
+plt.figure()
+plt.scatter(df['income'], df['purchase_amount'])
+plt.xlabel("Income")
+plt.ylabel("Purchase Amount")
+plt.title("Income vs Purchase Amount")
+plt.show()
+
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+
+log_reg = Pipeline([
+    ('preprocessor', preprocessor),
+    ('model', LogisticRegression(max_iter=1000))
+])
+
+log_reg.fit(X_train, y_train)
+y_pred_lr = log_reg.predict(X_test)
+
+from sklearn.tree import DecisionTreeClassifier
+
+dt = Pipeline([
+    ('preprocessor', preprocessor),
+    ('model', DecisionTreeClassifier())
+])
+
+dt.fit(X_train, y_train)
+y_pred_dt = dt.predict(X_test)
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+
+print("Logistic Regression")
+print("Accuracy:", accuracy_score(y_test, y_pred_lr))
+print("Precision:", precision_score(y_test, y_pred_lr))
+print("Recall:", recall_score(y_test, y_pred_lr))
+print("F1 Score:", f1_score(y_test, y_pred_lr))
+
+print("Decision Tree")
+print("Accuracy:", accuracy_score(y_test, y_pred_dt))
+print("Precision:", precision_score(y_test, y_pred_dt))
+print("Recall:", recall_score(y_test, y_pred_dt))
+print("F1 Score:", f1_score(y_test, y_pred_dt))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred_dt))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred_lr))
